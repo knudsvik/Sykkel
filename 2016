@@ -1,0 +1,77 @@
+%pylab inline
+import pandas as pd
+  #Sørmarka
+sor = pd.read_csv("https://open.stavanger.kommune.no/dataset/52546226-9fc9-4020-bd21-bd869c5ba8bd/resource/a70a59d4-14f9-427a-8a3d-1388504fa908/download/sormarka2015-2016.csv")
+sor.rename(columns = {"År":"Year"}, inplace=True) #Ikke populært med ÆØÅ
+sor = sor.drop(sor[sor.Year <2016].index) #Fjerner 2015 data
+sor["Day"] = sor["Dato"].str[:2].astype(int) #Lager dag-variabel
+sor["Month"] = sor["Dato"].str[-2:].astype(int) #Lager måned-variabel
+sor["Date"] = pd.to_datetime(sor.Year*10000 + sor.Month*100 + sor.Day, format="%Y%m%d") #fikser datoformat
+sor1 = pd.DataFrame() #Lage ny dataframe med kun det jeg trenger (dato og antall)
+sor1["Dato"] = sor["Date"]
+sor1["Sormarka"] = sor["Antall"]
+sor1 = sor1.set_index("Dato")
+  #Master DataFrame
+df = pd.DataFrame() 
+dates = pd.date_range("2016-01-01", periods = 366) #Kunne sikkert brukt timedelta her mellom 2016 og 2017
+df["Dato"] = dates
+df["Ukedag"] = df["Dato"].dt.dayofweek + 1 #Start mandag istedenfor søndag
+df = df.set_index("Dato")
+df = pd.merge(df, sor1, how="outer", left_index=True, right_index=True)
+  #Hillevåg
+hill = pd.read_csv("https://open.stavanger.kommune.no/dataset/52546226-9fc9-4020-bd21-bd869c5ba8bd/resource/25b11343-6e09-4044-aeb8-6cc1d7409f25/download/hillevag2015-2016.csv")
+hill.rename(columns = {"År":"Year"}, inplace = True)
+hill = hill.drop(hill[hill.Year <2016].index)
+hill["Day"] = hill["Dato"].str[:2].astype(int)
+hill["Month"] = hill["Dato"].str[-2:].astype(int)
+hill["Date"] = pd.to_datetime(hill.Year*10000 + hill.Month*100 + hill.Day, format="%Y%m%d")
+hill1 = pd.DataFrame()
+hill1["Dato"] = hill["Date"]
+hill1["Hillevaag"] = hill["Antall"]
+hill1 = hill1.set_index("Dato")
+df = pd.merge(df, hill1, how="outer", left_index=True, right_index=True)
+  #Stokkavannet
+sto = pd.read_csv("https://open.stavanger.kommune.no/dataset/52546226-9fc9-4020-bd21-bd869c5ba8bd/resource/fb1c104b-2385-4b16-83ea-616a0221744c/download/stokkavannet2016.csv")
+sto.rename(columns = {"År":"Year"}, inplace = True)
+sto = sto.drop(sto[sto.Year <2016].index)
+sto["Day"] = sto["Dato"].str[:2].astype(int)
+sto["Month"] = sto["Dato"].str[-2:].astype(int)
+sto["Date"] = pd.to_datetime(sto.Year*10000 + sto.Month*100 + sto.Day, format="%Y%m%d")
+sto1 = pd.DataFrame()
+sto1["Dato"] = sto["Date"]
+sto1["Stokkavannet"] = sto["Antall"]
+sto1 = sto1.set_index("Dato")
+df = pd.merge(df, sto1, how="outer", left_index=True, right_index=True)
+  #Tjensvollkrysset
+tje = pd.read_csv("https://open.stavanger.kommune.no/dataset/52546226-9fc9-4020-bd21-bd869c5ba8bd/resource/caed86c0-9422-472d-a2cb-5757939560bb/download/tjensvollkrysset2016.csv")
+tje.rename(columns = {"År":"Year"}, inplace = True)
+tje = tje.drop(tje[tje.Year <2016].index)
+tje["Day"] = tje["Dato"].str[:2].astype(int)
+tje["Month"] = tje["Dato"].str[-2:].astype(int)
+tje["Date"] = pd.to_datetime(tje.Year*10000 + tje.Month*100 + tje.Day, format="%Y%m%d")
+tje1 = pd.DataFrame()
+tje1["Dato"] = tje["Date"]
+tje1["Tjensvoll"] = tje["Antall"]
+tje1 = tje1.set_index("Dato")
+df = pd.merge(df, tje1, how="outer", left_index=True, right_index=True)
+  #Møllebukta
+mol = pd.read_csv("https://open.stavanger.kommune.no/dataset/52546226-9fc9-4020-bd21-bd869c5ba8bd/resource/97f8d13b-1364-46bd-8415-1a4ccdd0f9ff/download/mollebukta2012-2016.csv")
+mol.rename(columns = {"År":"Year"}, inplace = True)
+mol = mol.drop(mol[mol.Year <2016].index)
+mol["Day"] = mol["Dato"].str[:2].astype(int)
+mol["Month"] = mol["Dato"].str[-2:].astype(int)
+mol["Date"] = pd.to_datetime(mol.Year*10000 + mol.Month*100 + mol.Day, format="%Y%m%d")
+mol1 = pd.DataFrame()
+mol1["Dato"] = mol["Date"]
+mol1["Mollebukta"] = mol["Antall"]
+mol1 = mol1.set_index("Dato")
+df = pd.merge(df, mol1, how="outer", left_index=True, right_index=True)
+df.set_value("2016-12-13", "Mollebukta", 396) #Feiltelling? Nesten 4 000 på telleren
+df["Mollebukta"].hist(bins=50)
+df.plot(kind="line", y=["Sormarka","Hillevaag", "Stokkavannet", "Tjensvoll", "Mollebukta"])
+df.boxplot(column=["Sormarka", "Hillevaag"], by=["Ukedag"])
+df.boxplot(column=["Stokkavannet", "Tjensvoll"], by=["Ukedag"])
+df.boxplot(column=["Mollebukta"], by=["Ukedag"])
+df1 = df.resample("M").sum()
+df1.plot(kind="line", y=["Sormarka","Hillevaag", "Stokkavannet", "Tjensvoll", "Mollebukta"])
+df1
